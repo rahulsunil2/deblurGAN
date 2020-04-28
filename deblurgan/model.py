@@ -6,6 +6,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 
 from layer_utils import ReflectionPadding2D, res_block, IRD_block
+from keras.utils.vis_utils import plot_model
 
 # the paper defined hyper-parameter:chr
 channel_rate = 64
@@ -115,6 +116,7 @@ def generator_containing_discriminator_multiple_outputs(generator, discriminator
 if __name__ == '__main__':
     g = generator_model()
     g.summary()
+    plot_model(g, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
     # d = discriminator_model()
     # d.summary()
     # m = generator_containing_discriminator(generator_model(), discriminator_model())
