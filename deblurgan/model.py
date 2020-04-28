@@ -5,7 +5,7 @@ from keras.layers.core import Dense, Flatten, Lambda
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 
-from .layer_utils import ReflectionPadding2D, res_block
+from layer_utils import ReflectionPadding2D, res_block, IRD_block
 
 # the paper defined hyper-parameter:chr
 channel_rate = 64
@@ -41,7 +41,8 @@ def generator_model():
 
     mult = 2**n_downsampling
     for i in range(n_blocks_gen):
-        x = res_block(x, ngf*mult, use_dropout=True)
+        # x = res_block(x, ngf*mult, use_dropout=True)
+        x = IRD_block(x, 64)
 
     for i in range(n_downsampling):
         mult = 2**(n_downsampling - i)
@@ -114,7 +115,7 @@ def generator_containing_discriminator_multiple_outputs(generator, discriminator
 if __name__ == '__main__':
     g = generator_model()
     g.summary()
-    d = discriminator_model()
-    d.summary()
-    m = generator_containing_discriminator(generator_model(), discriminator_model())
-    m.summary()
+    # d = discriminator_model()
+    # d.summary()
+    # m = generator_containing_discriminator(generator_model(), discriminator_model())
+    # m.summary()

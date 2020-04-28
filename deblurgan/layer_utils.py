@@ -3,9 +3,11 @@ import tensorflow as tf
 from keras.models import Model
 from keras.engine import InputSpec
 from keras.engine.topology import Layer
-from keras.layers import Input, Conv2D, Activation, BatchNormalization
+from keras.layers import Input, Conv2D, Activation, BatchNormalization, MaxPooling2D, concatenate
 from keras.layers.merge import Add
 from keras.utils import conv_utils
+# from keras.utils.conv_utils import normalize_data_format
+from keras.backend.common import normalize_data_format
 from keras.layers.core import Dropout
 
 
@@ -38,6 +40,74 @@ def res_block(input, filters, kernel_size=(3, 3), strides=(1, 1), use_dropout=Fa
 
     merged = Add()([input, x])
     return merged
+
+def IRD_block(input, filters, kernel_size=(3, 3), strides=(1, 1),):
+
+    x = BatchNormalization()(input)
+    x = Activation('relu')(x)
+    x = Conv2D(filters=4*filters,
+               kernel_size=(1, 1),
+               strides=strides, padding='same')(x)
+
+    #Tower 1
+    tower_1 = Conv2D(filters=filters,
+                     kernel_size=(1, 1),
+                     strides=strides, padding='same')(x)
+    tower_1 = BatchNormalization()(tower_1)
+    tower_1 = Activation('relu')(tower_1)
+
+    #Tower 2
+    tower_2 = Conv2D(filters=4*filters,
+                     kernel_size=(1, 1),
+                     strides=strides, padding='same')(x)
+    tower_2 = BatchNormalization()(tower_2)
+    tower_2 = Activation('relu')(tower_2)
+
+    tower_2 = Conv2D(filters=filters,
+                     kernel_size=(3, 3),
+                     strides=strides, padding='same')(x)
+    tower_2 = BatchNormalization()(tower_2)
+    tower_2 = Activation('relu')(tower_2)
+
+    #Tower 3
+    tower_3 = Conv2D(filters=filters,
+                     kernel_size=(1, 1),
+                     strides=strides, padding='same')(x)
+    tower_3 = BatchNormalization()(tower_3)
+    tower_3 = Activation('relu')(tower_3)
+
+    tower_3 = Conv2D(filters=4*filters,
+                     kernel_size=(3, 3),
+                     strides=strides, padding='same')(x)
+    tower_3 = BatchNormalization()(tower_3)
+    tower_3 = Activation('relu')(tower_3)
+
+    tower_3 = Conv2D(filters=filters,
+                     kernel_size=(3, 3),
+                     strides=strides, padding='same')(x)
+    tower_3 = BatchNormalization()(tower_3)
+    tower_3 = Activation('relu')(tower_3)
+
+    #Tower 4
+    # tower_4 = MaxPooling2D((2, 2), padding='same')(x)
+
+    tower_4 = Conv2D(filters=filters,
+                     kernel_size=(1, 1),
+                     strides=strides, padding='same')(x)
+    tower_4 = BatchNormalization()(tower_4)
+    tower_4 = Activation('relu')(tower_4)
+
+    inception = concatenate([tower_1, tower_2, tower_3, tower_4])
+    inception = Add()([inception, x])
+
+    res = BatchNormalization()(inception)
+    res = Activation('relu')(x)
+    res = Conv2D(filters=4*filters,
+               kernel_size=(1, 1),
+               strides=strides, padding='same')(x)
+
+    output = Add()([input, res])
+    return output
 
 
 def spatial_reflection_2d_padding(x, padding=((1, 1), (1, 1)), data_format=None):
@@ -114,7 +184,7 @@ class ReflectionPadding2D(Layer):
                  data_format=None,
                  **kwargs):
         super(ReflectionPadding2D, self).__init__(**kwargs)
-        self.data_format = conv_utils.normalize_data_format(data_format)
+        self.data_format = normalize_data_format(data_format)
         if isinstance(padding, int):
             self.padding = ((padding, padding), (padding, padding))
         elif hasattr(padding, '__len__'):
